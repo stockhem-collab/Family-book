@@ -8,9 +8,11 @@ const WEEKDAY_SHORT = ["Mån", "Tis", "Ons", "Tors", "Fre", "Lör", "Sön"]
 export function WeekSelector({
   weekStart,
   today,
+  basePath,
 }: {
   weekStart: Date
   today: Date
+  basePath: string
 }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   const todayKey = toDateKey(today)
@@ -21,19 +23,19 @@ export function WeekSelector({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <Link
-          href={`/planering?week=${prevWeek}`}
+          href={`${basePath}?week=${prevWeek}`}
           className="text-muted-foreground hover:text-foreground text-sm"
         >
           ← Föregående
         </Link>
         <Link
-          href="/planering"
+          href={basePath}
           className="text-primary text-sm underline-offset-4 hover:underline"
         >
           Idag
         </Link>
         <Link
-          href={`/planering?week=${nextWeek}`}
+          href={`${basePath}?week=${nextWeek}`}
           className="text-muted-foreground hover:text-foreground text-sm"
         >
           Nästa →

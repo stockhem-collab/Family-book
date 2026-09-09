@@ -1,8 +1,9 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 
 import { AddEventDialog } from "@/components/planning/add-event-dialog"
 import { DayAgenda } from "@/components/planning/day-agenda"
-import { WeekSelector } from "@/components/planning/week-selector"
+import { WeekSelector } from "@/components/shared/week-selector"
 import { addDays, getWeekStart, parseDateKey } from "@/lib/date/week"
 import { createClient } from "@/lib/supabase/server"
 
@@ -56,11 +57,19 @@ export default async function PlaneringPage({
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-8">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-foreground text-xl font-semibold">Planering</h1>
+        <div className="flex flex-col">
+          <h1 className="text-foreground text-xl font-semibold">Planering</h1>
+          <Link
+            href="/mat"
+            className="text-primary text-xs underline-offset-4 hover:underline"
+          >
+            Matplanering →
+          </Link>
+        </div>
         <AddEventDialog members={members ?? []} />
       </div>
 
-      <WeekSelector weekStart={weekStart} today={now} />
+      <WeekSelector weekStart={weekStart} today={now} basePath="/planering" />
       <DayAgenda
         weekStart={weekStart}
         events={events ?? []}
