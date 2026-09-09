@@ -1,6 +1,6 @@
 "use server"
 
-import { LIST_TYPE_LABELS, type ListType } from "@/lib/lists/types"
+import type { ListType } from "@/lib/lists/types"
 import { createClient } from "@/lib/supabase/server"
 
 type ActionResult = { error?: string }
@@ -22,73 +22,63 @@ async function requireFamily() {
   return { supabase, userId: user.id, familyId: profile.family_id }
 }
 
-export async function quickAddEvent(input: {
-  title: string
-  startsAt: string
+export async function toggleListItem(input: {
+  id: string
+  isDone: boolean
 }): Promise<ActionResult> {
   const ctx = await requireFamily()
   if ("error" in ctx) return ctx
 
-  const { error } = await ctx.supabase.from("calendar_events").insert({
-    family_id: ctx.familyId,
-    title: input.title,
-    starts_at: new Date(input.startsAt).toISOString(),
-    created_by: ctx.userId,
-  })
+  const { error } = await ctx.supabase
+    .from("list_items")
+    .update({ is_done: input.isDone })
+    .eq("id", input.id)
 
   return error ? { error: error.message } : {}
 }
 
-export async function quickAddListItem(input: {
-  type: ListType
+export async function addListItem(input: {
+  listId: string
   label: string
+  assignedTo: string | null
 }): Promise<ActionResult> {
   const ctx = await requireFamily()
   if ("error" in ctx) return ctx
-
-  let { data: list } = await ctx.supabase
-    .from("lists")
-    .select("id")
-    .eq("family_id", ctx.familyId)
-    .eq("type", input.type)
-    .limit(1)
-    .maybeSingle()
-
-  if (!list) {
-    const { data: newList, error: listError } = await ctx.supabase
-      .from("lists")
-      .insert({
-        family_id: ctx.familyId,
-        type: input.type,
-        title: LIST_TYPE_LABELS[input.type],
-        owner_id: ctx.userId,
-      })
-      .select("id")
-      .single()
-
-    if (listError) return { error: listError.message }
-    list = newList
-  }
 
   const { error } = await ctx.supabase.from("list_items").insert({
-    list_id: list.id,
+    list_id: input.listId,
     family_id: ctx.familyId,
     label: input.label,
+    assigned_to: input.assignedTo,
   })
 
   return error ? { error: error.message } : {}
 }
 
-export async function quickAddPost(input: {
-  text: string
+export async function deleteListItem(id: string): Promise<ActionResult> {
+  const ctx = await requireFamily()
+  if ("error" in ctx) return ctx
+
+  const { error } = await ctx.supabase
+    .from("list_items")
+    .delete()
+    .eq("id", id)
+
+  return error ? { error: error.message } : {}
+}
+
+export async function createList(input: {
+  type: ListType
+  title: string
 }): Promise<ActionResult> {
   const ctx = await requireFamily()
   if ("error" in ctx) return ctx
 
-  const { error } = await ctx.supabase.from("feed_posts").insert({
+  const { error } = await ctx.supabase.from("lists").insert({
     family_id: ctx.familyId,
-    author_id: ctx.userId,
-    text_content: input.text,
+    type: input.type,
+    title: input.title,
+    owner_id: ctx.userId,
   })
 
   return error ? { error: error.message } : {}
