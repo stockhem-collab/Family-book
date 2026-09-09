@@ -14,6 +14,19 @@ const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
   month: "short",
 })
 
+const SHORT_DATETIME_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+})
+
+const LONG_DATE_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+})
+
 export function formatHeaderDate(date: Date) {
   const formatted = WEEKDAY_DATE_FORMATTER.format(date)
   return formatted.charAt(0).toUpperCase() + formatted.slice(1)
@@ -29,6 +42,14 @@ export function getGreeting(date: Date) {
 
 export function formatTime(date: Date) {
   return TIME_FORMATTER.format(date)
+}
+
+export function formatShortDateTime(date: Date) {
+  return SHORT_DATETIME_FORMATTER.format(date)
+}
+
+export function formatLongDate(date: Date) {
+  return LONG_DATE_FORMATTER.format(date)
 }
 
 export function formatRelativeTime(date: Date, now: Date = new Date()) {

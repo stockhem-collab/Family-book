@@ -1,5 +1,7 @@
 import Link from "next/link"
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { getInitials } from "@/lib/family/initials"
 import type { Tables } from "@/lib/supabase/types"
 
 type Member = Pick<Tables<"profiles">, "id" | "display_name" | "avatar_url">
@@ -15,18 +17,12 @@ export function AvatarRow({ members }: { members: Member[] }) {
           href={`/familj/${member.id}`}
           className="flex flex-col items-center gap-1"
         >
-          <span className="bg-secondary text-secondary-foreground flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-semibold shadow-sm">
-            {member.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={member.avatar_url}
-                alt={member.display_name}
-                className="size-full object-cover"
-              />
-            ) : (
-              initials(member.display_name)
-            )}
-          </span>
+          <Avatar className="size-12 shadow-sm">
+            <AvatarImage src={member.avatar_url ?? undefined} alt="" />
+            <AvatarFallback className="text-sm">
+              {getInitials(member.display_name)}
+            </AvatarFallback>
+          </Avatar>
           <span className="text-muted-foreground max-w-14 truncate text-xs">
             {member.display_name}
           </span>
@@ -34,13 +30,4 @@ export function AvatarRow({ members }: { members: Member[] }) {
       ))}
     </div>
   )
-}
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
 }
