@@ -596,7 +596,12 @@ export interface Database {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      get_family_by_invite_code: {
+        Args: { code: string }
+        Returns: { id: string; name: string }[]
+      }
+    }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }
