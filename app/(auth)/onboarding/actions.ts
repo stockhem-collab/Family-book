@@ -30,25 +30,14 @@ export async function createFamily(
   // om vi råkar krocka med en befintlig.
   for (let attempt = 0; attempt < 5; attempt++) {
     const inviteCode = generateInviteCode()
-    const { data: family, error } = await supabase
-      .from("families")
-      .insert({ name, invite_code: inviteCode })
-      .select("id")
-      .single()
+    const { error } = await supabase.rpc("create_family", {
+      family_name: name,
+      invite_code: inviteCode,
+    })
 
     if (error) {
-      console.error("INSERT families error:", JSON.stringify(error, null, 2))
       if (error.code === UNIQUE_VIOLATION) continue
       return { error: error.message }
-    }
-
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({ family_id: family.id, role: "admin" })
-      .eq("id", user.id)
-
-    if (profileError) {
-      return { error: profileError.message }
     }
 
     redirect("/")
