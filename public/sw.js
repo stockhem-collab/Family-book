@@ -40,6 +40,7 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+  if (request.url.includes("/auth/")) return;
 
   // Rör aldrig API-/Supabase-anrop – appen ska aldrig visa cachad, inaktuell
   // familjedata som om den vore live.
