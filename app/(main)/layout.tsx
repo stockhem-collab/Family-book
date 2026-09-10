@@ -21,7 +21,7 @@ export default async function MainLayout({
   const { data: profile } = await supabase
     .from("profiles")
     .select("family_id")
-    .eq("id", user.id)
+    .eq("user_id", user.id)
     .single()
 
   const familyId = profile?.family_id

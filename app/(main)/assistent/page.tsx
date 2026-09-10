@@ -15,8 +15,8 @@ export default async function AssistentPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("family_id")
-    .eq("id", user.id)
+    .select("id, family_id")
+    .eq("user_id", user.id)
     .single()
 
   const familyId = profile?.family_id
@@ -28,7 +28,7 @@ export default async function AssistentPage() {
     .from("assistant_messages")
     .select("id, role, content")
     .eq("family_id", familyId)
-    .eq("user_id", user.id)
+    .eq("user_id", profile.id)
     .order("created_at")
     .limit(50)
 

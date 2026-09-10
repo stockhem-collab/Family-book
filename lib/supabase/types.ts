@@ -42,6 +42,7 @@ export interface Database {
       profiles: {
         Row: {
           id: string
+          user_id: string | null
           family_id: string | null
           display_name: string
           role: string | null
@@ -55,7 +56,8 @@ export interface Database {
           created_at: string | null
         }
         Insert: {
-          id: string
+          id?: string
+          user_id?: string | null
           family_id?: string | null
           display_name: string
           role?: string | null
@@ -70,6 +72,7 @@ export interface Database {
         }
         Update: {
           id?: string
+          user_id?: string | null
           family_id?: string | null
           display_name?: string
           role?: string | null

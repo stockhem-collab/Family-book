@@ -25,7 +25,7 @@ export async function createEvent(input: {
     category: input.category,
     member_ids: input.memberIds,
     bring_items: input.bringItems,
-    created_by: ctx.userId,
+    created_by: ctx.profileId,
   })
 
   return error ? { error: error.message } : {}

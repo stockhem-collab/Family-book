@@ -26,8 +26,8 @@ export default async function FamiljMemberPage({
 
   const { data: viewer } = await supabase
     .from("profiles")
-    .select("family_id, role")
-    .eq("id", user.id)
+    .select("id, family_id, role")
+    .eq("user_id", user.id)
     .single()
 
   const familyId = viewer?.family_id
@@ -87,7 +87,7 @@ export default async function FamiljMemberPage({
         .order("sort_order")
     : { data: [] }
 
-  const canEdit = user.id === member.id || viewer?.role === "admin"
+  const canEdit = viewer?.id === member.id || viewer?.role === "admin"
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-8">

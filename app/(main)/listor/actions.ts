@@ -61,7 +61,7 @@ export async function createList(input: {
     family_id: ctx.familyId,
     type: input.type,
     title: input.title,
-    owner_id: ctx.userId,
+    owner_id: ctx.profileId,
   })
 
   return error ? { error: error.message } : {}

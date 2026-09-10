@@ -27,7 +27,7 @@ export default async function Home() {
   const { data: profile } = await supabase
     .from("profiles")
     .select("display_name, family_id")
-    .eq("id", user.id)
+    .eq("user_id", user.id)
     .single()
 
   const familyId = profile?.family_id

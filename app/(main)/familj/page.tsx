@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
+import { AddMemberDialog } from "@/components/family/add-member-dialog"
 import { InviteCard } from "@/components/family/invite-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { calculateAge } from "@/lib/family/age"
@@ -21,8 +22,8 @@ export default async function FamiljPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("family_id")
-    .eq("id", user.id)
+    .select("family_id, role")
+    .eq("user_id", user.id)
     .single()
 
   const familyId = profile?.family_id
@@ -45,7 +46,10 @@ export default async function FamiljPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-8">
-      <h1 className="text-foreground text-xl font-semibold">Familj</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-foreground text-xl font-semibold">Familj</h1>
+        {profile?.role === "admin" && <AddMemberDialog />}
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         {(members ?? []).map((member) => (

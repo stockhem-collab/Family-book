@@ -16,7 +16,7 @@ export async function quickAddEvent(input: {
     family_id: ctx.familyId,
     title: input.title,
     starts_at: new Date(input.startsAt).toISOString(),
-    created_by: ctx.userId,
+    created_by: ctx.profileId,
   })
 
   return error ? { error: error.message } : {}
@@ -44,7 +44,7 @@ export async function quickAddListItem(input: {
         family_id: ctx.familyId,
         type: input.type,
         title: LIST_TYPE_LABELS[input.type],
-        owner_id: ctx.userId,
+        owner_id: ctx.profileId,
       })
       .select("id")
       .single()
@@ -70,7 +70,7 @@ export async function quickAddPost(input: {
 
   const { error } = await ctx.supabase.from("feed_posts").insert({
     family_id: ctx.familyId,
-    author_id: ctx.userId,
+    author_id: ctx.profileId,
     text_content: input.text,
   })
 

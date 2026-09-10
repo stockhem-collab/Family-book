@@ -35,14 +35,15 @@ export async function POST(req: Request) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("family_id, display_name")
-    .eq("id", user.id)
+    .select("id, family_id, display_name")
+    .eq("user_id", user.id)
     .single()
 
   const familyId = profile?.family_id
-  if (!familyId) {
+  if (!familyId || !profile) {
     return Response.json({ error: "Ingen familj hittades." }, { status: 400 })
   }
+  const profileId = profile.id
 
   const now = new Date().toISOString()
 
@@ -75,7 +76,7 @@ export async function POST(req: Request) {
       .from("assistant_messages")
       .select("role, content")
       .eq("family_id", familyId)
-      .eq("user_id", user.id)
+      .eq("user_id", profileId)
       .order("created_at", { ascending: false })
       .limit(HISTORY_LIMIT),
   ])
@@ -120,8 +121,8 @@ Svara kort, varmt och konkret på svenska.`
     const reply = textBlock?.text ?? "Jag kunde tyvärr inte svara just nu."
 
     await supabase.from("assistant_messages").insert([
-      { family_id: familyId, user_id: user.id, role: "user", content: message },
-      { family_id: familyId, user_id: user.id, role: "assistant", content: reply },
+      { family_id: familyId, user_id: profileId, role: "user", content: message },
+      { family_id: familyId, user_id: profileId, role: "assistant", content: reply },
     ])
 
     return Response.json({ reply })

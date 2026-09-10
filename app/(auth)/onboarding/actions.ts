@@ -44,7 +44,7 @@ export async function createFamily(
     const { error: profileError } = await supabase
       .from("profiles")
       .update({ family_id: family.id, role: "admin" })
-      .eq("id", user.id)
+      .eq("user_id", user.id)
 
     if (profileError) {
       return { error: profileError.message }
@@ -89,7 +89,7 @@ export async function joinFamilyByCode(
   const { error: profileError } = await supabase
     .from("profiles")
     .update({ family_id: family.id, role: "member" })
-    .eq("id", user.id)
+    .eq("user_id", user.id)
 
   if (profileError) {
     return { error: profileError.message }
