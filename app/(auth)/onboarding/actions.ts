@@ -37,6 +37,7 @@ export async function createFamily(
       .single()
 
     if (error) {
+      console.error("INSERT families error:", JSON.stringify(error, null, 2))
       if (error.code === UNIQUE_VIOLATION) continue
       return { error: error.message }
     }
