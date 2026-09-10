@@ -1,4 +1,5 @@
-import { formatShortDate, formatTime } from "@/lib/date/format"
+import { EventCard } from "@/components/planning/event-card"
+import { formatShortDate } from "@/lib/date/format"
 import { getStockholmDateParts } from "@/lib/date/timezone"
 import { addDays, toDateKey } from "@/lib/date/week"
 import type { Tables } from "@/lib/supabase/types"
@@ -20,6 +21,7 @@ type EventRow = Pick<
   | "category"
   | "location"
   | "starts_at"
+  | "ends_at"
   | "member_ids"
   | "bring_items"
 >
@@ -77,42 +79,18 @@ export function DayAgenda({
             ) : (
               <ul className="flex flex-col gap-2">
                 {dayEvents.map((event) => {
-                  const meta = [event.category, event.location]
-                    .filter(Boolean)
-                    .join(" · ")
                   const memberLabel = (event.member_ids ?? [])
                     .map((id) => memberName(id))
                     .filter(Boolean)
                     .join(", ")
 
                   return (
-                    <li
-                      key={event.id}
-                      className="bg-card flex flex-col gap-1 rounded-[var(--radius-card)] p-3 shadow-sm"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-foreground text-sm font-medium">
-                          {event.title}
-                        </span>
-                        <span className="text-muted-foreground text-xs">
-                          {formatTime(new Date(event.starts_at))}
-                        </span>
-                      </div>
-                      {meta && (
-                        <span className="text-muted-foreground text-xs">
-                          {meta}
-                        </span>
-                      )}
-                      {memberLabel && (
-                        <span className="text-muted-foreground text-xs">
-                          {memberLabel}
-                        </span>
-                      )}
-                      {event.bring_items && (
-                        <span className="text-muted-foreground text-xs">
-                          Ta med: {event.bring_items}
-                        </span>
-                      )}
+                    <li key={event.id}>
+                      <EventCard
+                        event={event}
+                        members={members}
+                        memberLabel={memberLabel}
+                      />
                     </li>
                   )
                 })}

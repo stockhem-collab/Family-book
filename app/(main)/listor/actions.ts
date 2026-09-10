@@ -24,6 +24,8 @@ export async function addListItem(input: {
   listId: string
   label: string
   assignedTo: string | null
+  price?: number | null
+  priority?: string | null
 }): Promise<ActionResult> {
   const ctx = await requireFamily()
   if ("error" in ctx) return ctx
@@ -33,7 +35,26 @@ export async function addListItem(input: {
     family_id: ctx.familyId,
     label: input.label,
     assigned_to: input.assignedTo,
+    price: input.price ?? null,
+    priority: input.priority ?? null,
   })
+
+  return error ? { error: error.message } : {}
+}
+
+/** Ändrar pris/prioritet i efterhand – används av önskelistans radmeny. */
+export async function updateWishlistItem(input: {
+  id: string
+  price: number | null
+  priority: string | null
+}): Promise<ActionResult> {
+  const ctx = await requireFamily()
+  if ("error" in ctx) return ctx
+
+  const { error } = await ctx.supabase
+    .from("list_items")
+    .update({ price: input.price, priority: input.priority })
+    .eq("id", input.id)
 
   return error ? { error: error.message } : {}
 }

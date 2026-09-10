@@ -47,7 +47,7 @@ export default async function PlaneringPage({
     supabase
       .from("calendar_events")
       .select(
-        "id, title, category, location, starts_at, member_ids, bring_items"
+        "id, title, category, location, starts_at, ends_at, member_ids, bring_items"
       )
       .eq("family_id", familyId)
       .gte("starts_at", rangeStart.toISOString())

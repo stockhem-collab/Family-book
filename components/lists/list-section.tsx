@@ -2,13 +2,14 @@
 
 import { useState, useTransition, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
-import { Trash2 } from "lucide-react"
+import { Pencil, Trash2 } from "lucide-react"
 
 import {
   addListItem,
   clearList,
   deleteListItem,
   toggleListItem,
+  updateWishlistItem,
 } from "@/app/(main)/listor/actions"
 import { Button } from "@/components/ui/button"
 import {
@@ -24,7 +25,7 @@ import { PRIORITY_LABELS } from "@/lib/lists/types"
 import type { Tables } from "@/lib/supabase/types"
 import { cn } from "@/lib/utils"
 
-type ListRow = Pick<Tables<"lists">, "id" | "title">
+type ListRow = Pick<Tables<"lists">, "id" | "title" | "type">
 type ItemRow = Pick<
   Tables<"list_items">,
   | "id"
@@ -37,6 +38,8 @@ type ItemRow = Pick<
 >
 type Member = Pick<Tables<"profiles">, "id" | "display_name">
 
+const PRIORITY_OPTIONS = Object.entries(PRIORITY_LABELS) as [string, string][]
+
 export function ListSection({
   list,
   items,
@@ -47,11 +50,15 @@ export function ListSection({
   members: Member[]
 }) {
   const router = useRouter()
+  const isWishlist = list.type === "wishlist"
   const [pending, startTransition] = useTransition()
   const [label, setLabel] = useState("")
   const [assignedTo, setAssignedTo] = useState("")
+  const [price, setPrice] = useState("")
+  const [priority, setPriority] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [confirmClearOpen, setConfirmClearOpen] = useState(false)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
 
   const sorted = [...items].sort((a, b) => {
     if (a.is_done !== b.is_done) return a.is_done ? 1 : -1
@@ -75,9 +82,21 @@ export function ListSection({
     if (!label.trim()) return
     const value = label.trim()
     const assigned = assignedTo || null
+    const priceValue = price.trim() ? Number(price) : null
+    const priorityValue = priority || null
     setLabel("")
     setAssignedTo("")
-    run(() => addListItem({ listId: list.id, label: value, assignedTo: assigned }))
+    setPrice("")
+    setPriority("")
+    run(() =>
+      addListItem({
+        listId: list.id,
+        label: value,
+        assignedTo: assigned,
+        price: priceValue,
+        priority: priorityValue,
+      })
+    )
   }
 
   function memberName(id: string | null) {
@@ -140,57 +159,91 @@ export function ListSection({
             ]
               .filter(Boolean)
               .join(" · ")
+            const isEditing = editingItemId === item.id
 
             return (
-              <li key={item.id} className="flex items-center gap-3">
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() =>
-                    run(() =>
-                      toggleListItem({ id: item.id, isDone: !item.is_done })
-                    )
-                  }
-                  className="-m-3 flex size-11 shrink-0 items-center justify-center"
-                  aria-label={
-                    item.is_done ? "Markera som ej klar" : "Markera som klar"
-                  }
-                >
-                  <span
-                    className={cn(
-                      "flex size-5 items-center justify-center rounded-full border-2 transition-colors",
-                      item.is_done
-                        ? "border-primary bg-primary"
-                        : "border-muted-foreground/40"
-                    )}
-                  />
-                </button>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span
-                    className={cn(
-                      "truncate text-sm",
-                      item.is_done
-                        ? "text-muted-foreground line-through"
-                        : "text-foreground"
-                    )}
+              <li key={item.id} className="flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() =>
+                      run(() =>
+                        toggleListItem({ id: item.id, isDone: !item.is_done })
+                      )
+                    }
+                    className="-m-3 flex size-11 shrink-0 items-center justify-center"
+                    aria-label={
+                      item.is_done ? "Markera som ej klar" : "Markera som klar"
+                    }
                   >
-                    {item.label}
-                  </span>
-                  {meta && (
-                    <span className="text-muted-foreground text-xs">
-                      {meta}
+                    <span
+                      className={cn(
+                        "flex size-5 items-center justify-center rounded-full border-2 transition-colors",
+                        item.is_done
+                          ? "border-primary bg-primary"
+                          : "border-muted-foreground/40"
+                      )}
+                    />
+                  </button>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span
+                      className={cn(
+                        "truncate text-sm",
+                        item.is_done
+                          ? "text-muted-foreground line-through"
+                          : "text-foreground"
+                      )}
+                    >
+                      {item.label}
                     </span>
+                    {meta && (
+                      <span className="text-muted-foreground text-xs">
+                        {meta}
+                      </span>
+                    )}
+                  </div>
+                  {isWishlist && (
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() =>
+                        setEditingItemId(isEditing ? null : item.id)
+                      }
+                      className="text-muted-foreground hover:text-foreground shrink-0"
+                      aria-label="Ändra pris/prioritet"
+                    >
+                      <Pencil className="size-4" />
+                    </button>
                   )}
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => run(() => deleteListItem(item.id))}
+                    className="text-muted-foreground hover:text-destructive shrink-0"
+                    aria-label="Ta bort"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => run(() => deleteListItem(item.id))}
-                  className="text-muted-foreground hover:text-destructive shrink-0"
-                  aria-label="Ta bort"
-                >
-                  <Trash2 className="size-4" />
-                </button>
+
+                {isEditing && (
+                  <WishlistEditRow
+                    item={item}
+                    pending={pending}
+                    onCancel={() => setEditingItemId(null)}
+                    onSave={(next) => {
+                      setEditingItemId(null)
+                      run(() =>
+                        updateWishlistItem({
+                          id: item.id,
+                          price: next.price,
+                          priority: next.priority,
+                        })
+                      )
+                    }}
+                  />
+                )}
               </li>
             )
           })}
@@ -199,32 +252,121 @@ export function ListSection({
 
       {error && <p className="text-destructive text-sm">{error}</p>}
 
-      <form onSubmit={handleAdd} className="flex items-center gap-2">
-        <Input
-          value={label}
-          onChange={(event) => setLabel(event.target.value)}
-          placeholder="Lägg till…"
-          className="h-9"
-        />
-        {members.length > 0 && (
-          <select
-            value={assignedTo}
-            onChange={(event) => setAssignedTo(event.target.value)}
-            className="border-input bg-card text-foreground h-9 shrink-0 rounded-md border px-2 text-xs"
-            aria-label="Tilldela"
-          >
-            <option value="">Alla</option>
-            {members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.display_name}
-              </option>
-            ))}
-          </select>
+      <form onSubmit={handleAdd} className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <Input
+            value={label}
+            onChange={(event) => setLabel(event.target.value)}
+            placeholder="Lägg till…"
+            className="h-9"
+          />
+          {members.length > 0 && (
+            <select
+              value={assignedTo}
+              onChange={(event) => setAssignedTo(event.target.value)}
+              className="border-input bg-card text-foreground h-9 shrink-0 rounded-md border px-2 text-xs"
+              aria-label="Tilldela"
+            >
+              <option value="">Alla</option>
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.display_name}
+                </option>
+              ))}
+            </select>
+          )}
+          <Button type="submit" size="sm" disabled={pending || !label.trim()}>
+            Lägg till
+          </Button>
+        </div>
+
+        {isWishlist && (
+          <div className="flex items-center gap-2">
+            <Input
+              value={price}
+              onChange={(event) => setPrice(event.target.value)}
+              type="number"
+              min="0"
+              step="1"
+              placeholder="Pris (kr, valfritt)"
+              className="h-9"
+            />
+            <select
+              value={priority}
+              onChange={(event) => setPriority(event.target.value)}
+              className="border-input bg-card text-foreground h-9 w-full shrink-0 rounded-md border px-2 text-xs"
+              aria-label="Prioritet"
+            >
+              <option value="">Ingen prioritet</option>
+              {PRIORITY_OPTIONS.map(([value, optionLabel]) => (
+                <option key={value} value={value}>
+                  {optionLabel}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
-        <Button type="submit" size="sm" disabled={pending || !label.trim()}>
-          Lägg till
-        </Button>
       </form>
     </div>
+  )
+}
+
+function WishlistEditRow({
+  item,
+  pending,
+  onSave,
+  onCancel,
+}: {
+  item: ItemRow
+  pending: boolean
+  onSave: (next: { price: number | null; priority: string | null }) => void
+  onCancel: () => void
+}) {
+  const [price, setPrice] = useState(item.price?.toString() ?? "")
+  const [priority, setPriority] = useState(item.priority ?? "")
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    onSave({
+      price: price.trim() ? Number(price) : null,
+      priority: priority || null,
+    })
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="bg-muted/50 flex items-center gap-2 rounded-lg p-2"
+    >
+      <Input
+        value={price}
+        onChange={(event) => setPrice(event.target.value)}
+        type="number"
+        min="0"
+        step="1"
+        placeholder="Pris (kr)"
+        className="h-9"
+        autoFocus
+      />
+      <select
+        value={priority}
+        onChange={(event) => setPriority(event.target.value)}
+        className="border-input bg-card text-foreground h-9 w-full shrink-0 rounded-md border px-2 text-xs"
+        aria-label="Prioritet"
+      >
+        <option value="">Ingen prioritet</option>
+        {PRIORITY_OPTIONS.map(([value, optionLabel]) => (
+          <option key={value} value={value}>
+            {optionLabel}
+          </option>
+        ))}
+      </select>
+      <Button type="submit" size="sm" disabled={pending}>
+        Spara
+      </Button>
+      <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+        Avbryt
+      </Button>
+    </form>
   )
 }
