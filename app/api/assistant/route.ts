@@ -46,12 +46,15 @@ export async function POST(req: Request) {
   const profileId = profile.id
 
   const now = new Date().toISOString()
+  const today = now.slice(0, 10)
 
   const [
     { data: events },
     { data: items },
     { data: lists },
     { data: pets },
+    { data: members },
+    { data: meals },
     { data: history },
   ] = await Promise.all([
     supabase
@@ -73,6 +76,17 @@ export async function POST(req: Request) {
       .select("name, species, breed, current_medication")
       .eq("family_id", familyId),
     supabase
+      .from("profiles")
+      .select("display_name, favorite_food, dislikes, hobbies")
+      .eq("family_id", familyId),
+    supabase
+      .from("meal_plans")
+      .select("date, meal_title")
+      .eq("family_id", familyId)
+      .gte("date", today)
+      .order("date")
+      .limit(14),
+    supabase
       .from("assistant_messages")
       .select("role, content")
       .eq("family_id", familyId)
@@ -87,13 +101,27 @@ export async function POST(req: Request) {
     priority: item.priority,
     lista: listTitleById.get(item.list_id) ?? null,
   }))
+  const preferences = (members ?? [])
+    .filter((member) => member.favorite_food || member.dislikes || member.hobbies)
+    .map((member) => ({
+      namn: member.display_name,
+      favoritmat: member.favorite_food,
+      ogillar: member.dislikes,
+      hobbies: member.hobbies,
+    }))
 
   const systemContext = `Du är familjens assistent för "Familjen"-appen. Du pratar med ${
     profile?.display_name ?? "en familjemedlem"
   }.
 Kommande händelser: ${JSON.stringify(events ?? [])}
 Öppna listor: ${JSON.stringify(openItems)}
+Planerad mat kommande dagar: ${JSON.stringify(meals ?? [])}
+Familjemedlemmars matpreferenser och hobbies: ${JSON.stringify(preferences)}
 Husdjur: ${JSON.stringify(pets ?? [])}
+Använd matpreferenserna när du föreslår middagar, matsedel eller vad som ska
+handlas – undvik det någon ogillar och lyft gärna favoriter. Du kan bara ge
+förslag i den här chatten; du sparar inget i listor eller matplanering åt
+${profile?.display_name ?? "användaren"} automatiskt.
 Svara kort, varmt och konkret på svenska.`
 
   const conversationHistory: Anthropic.MessageParam[] = (history ?? [])
