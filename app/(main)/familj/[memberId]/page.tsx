@@ -49,6 +49,7 @@ export default async function FamiljMemberPage({
   }
 
   const canEdit = viewer?.id === member.id || viewer?.role === "admin"
+  const canDelete = viewer?.role === "admin" && viewer?.id !== member.id
 
   // Om det här är en platshållarprofil (inget eget konto) och man är admin:
   // hämta familjens övriga profiler som HAR ett konto, så en av dem kan
@@ -155,6 +156,7 @@ export default async function FamiljMemberPage({
         activityEvents={activityEvents ?? []}
         wishlistItems={wishlistItems ?? []}
         canEdit={canEdit}
+        canDelete={canDelete}
         claimableAccounts={claimableAccounts ?? []}
       />
     </div>

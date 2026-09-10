@@ -608,6 +608,10 @@ export interface Database {
         Args: { keep_profile_id: string; duplicate_profile_id: string }
         Returns: undefined
       }
+      delete_family_member: {
+        Args: { target_profile_id: string }
+        Returns: undefined
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>

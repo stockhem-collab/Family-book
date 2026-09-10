@@ -3,6 +3,7 @@
 import { useState } from "react"
 
 import { ClaimProfileForm } from "@/components/family/claim-profile-form"
+import { DeleteMemberButton } from "@/components/family/delete-member-button"
 import { EditProfileForm } from "@/components/family/edit-profile-form"
 import { formatLongDate, formatTime } from "@/lib/date/format"
 import { PRIORITY_LABELS } from "@/lib/lists/types"
@@ -46,12 +47,14 @@ export function ProfileTabs({
   activityEvents,
   wishlistItems,
   canEdit,
+  canDelete,
   claimableAccounts,
 }: {
   member: Member
   activityEvents: EventRow[]
   wishlistItems: WishlistItem[]
   canEdit: boolean
+  canDelete: boolean
   claimableAccounts: ClaimableAccount[]
 }) {
   const [active, setActive] = useState<TabValue>("info")
@@ -194,6 +197,13 @@ export function ProfileTabs({
                 accounts={claimableAccounts}
               />
             </div>
+          )}
+
+          {canDelete && (
+            <DeleteMemberButton
+              profileId={member.id}
+              displayName={member.display_name}
+            />
           )}
         </div>
       )}

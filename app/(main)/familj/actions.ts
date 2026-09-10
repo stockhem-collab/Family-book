@@ -74,6 +74,27 @@ export async function createFamilyMember(input: {
  * flyttas över, och duplicate-profilen tas bort. Se migrationen
  * merge_profile_into för säkerhetskontrollerna (admin, samma familj).
  */
+/**
+ * Tar bort en familjemedlem helt (t.ex. tillagd av misstag, eller någon som
+ * lämnat familjen). Se migrationen delete_family_member för säkerhets-
+ * kontrollerna (admin, samma familj, inte sig själv) och hur andra tabellers
+ * kopplingar till personen nollställs innan raden tas bort.
+ */
+export async function deleteFamilyMember(profileId: string): Promise<ActionResult> {
+  const ctx = await requireFamily()
+  if ("error" in ctx) return ctx
+
+  if (ctx.role !== "admin") {
+    return { error: "Bara en admin kan ta bort en familjemedlem." }
+  }
+
+  const { error } = await ctx.supabase.rpc("delete_family_member", {
+    target_profile_id: profileId,
+  })
+
+  return error ? { error: error.message } : {}
+}
+
 export async function claimPlaceholderProfile(input: {
   keepProfileId: string
   duplicateProfileId: string
