@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react"
 
+import { clearList } from "@/app/(main)/listor/actions"
 import {
   quickAddListItems,
   quickAddMealPlanEntries,
@@ -98,7 +99,9 @@ export function AssistantChat({
     const result =
       action.kind === "list_items"
         ? await quickAddListItems({ type: action.listType, labels: action.items })
-        : await quickAddMealPlanEntries({ entries: action.entries })
+        : action.kind === "meal_plan"
+          ? await quickAddMealPlanEntries({ entries: action.entries })
+          : await clearList(action.listId)
 
     setActionStatus((prev) => ({
       ...prev,
@@ -177,25 +180,46 @@ function ActionCard({
   const title =
     action.kind === "list_items"
       ? `Lägg till på ${LIST_TYPE_LABELS[action.listType]}?`
-      : "Lägg till i matplaneringen?"
+      : action.kind === "meal_plan"
+        ? "Lägg till i matplaneringen?"
+        : `Rensa listan "${action.listTitle}"?`
+
+  const confirmLabel = action.kind === "clear_list" ? "Rensa lista" : "Lägg till"
+  const doneLabel = action.kind === "clear_list" ? "✓ Rensad!" : "✓ Tillagt!"
+  const savingLabel = action.kind === "clear_list" ? "Rensar…" : "Lägger till…"
+  const dismissedLabel = action.kind === "clear_list" ? "Inget rensat." : "Inget tillagt."
+  const errorLabel =
+    action.kind === "clear_list"
+      ? "Kunde inte rensa listan, se felmeddelandet ovan."
+      : "Kunde inte lägga till, se felmeddelandet ovan."
 
   return (
     <div className="bg-card border-border max-w-[85%] self-start rounded-[var(--radius-card)] border px-4 py-3 text-sm shadow-sm">
       <p className="text-foreground mb-2 font-medium">{title}</p>
-      <ul className="text-muted-foreground mb-3 list-disc space-y-1 pl-4">
-        {action.kind === "list_items"
-          ? action.items.map((item, index) => <li key={index}>{item}</li>)
-          : action.entries.map((entry, index) => (
-              <li key={index}>
-                {formatMealDate(entry.date)}: {entry.mealTitle}
-              </li>
-            ))}
-      </ul>
+      {action.kind === "clear_list" ? (
+        <p className="text-muted-foreground mb-3">
+          Alla objekt i listan tas bort. Det går inte att ångra.
+        </p>
+      ) : (
+        <ul className="text-muted-foreground mb-3 list-disc space-y-1 pl-4">
+          {action.kind === "list_items"
+            ? action.items.map((item, index) => <li key={index}>{item}</li>)
+            : action.entries.map((entry, index) => (
+                <li key={index}>
+                  {formatMealDate(entry.date)}: {entry.mealTitle}
+                </li>
+              ))}
+        </ul>
+      )}
 
       {status === "pending" && (
         <div className="flex gap-2">
-          <Button size="sm" onClick={onConfirm}>
-            Lägg till
+          <Button
+            size="sm"
+            variant={action.kind === "clear_list" ? "destructive" : "default"}
+            onClick={onConfirm}
+          >
+            {confirmLabel}
           </Button>
           <Button size="sm" variant="outline" onClick={onDismiss}>
             Nej tack
@@ -203,18 +227,16 @@ function ActionCard({
         </div>
       )}
       {status === "saving" && (
-        <p className="text-muted-foreground text-xs">Lägger till…</p>
+        <p className="text-muted-foreground text-xs">{savingLabel}</p>
       )}
       {status === "added" && (
-        <p className="text-accent-green-foreground text-xs">✓ Tillagt!</p>
+        <p className="text-accent-green-foreground text-xs">{doneLabel}</p>
       )}
       {status === "dismissed" && (
-        <p className="text-muted-foreground text-xs">Inget tillagt.</p>
+        <p className="text-muted-foreground text-xs">{dismissedLabel}</p>
       )}
       {status === "error" && (
-        <p className="text-destructive text-xs">
-          Kunde inte lägga till, se felmeddelandet ovan.
-        </p>
+        <p className="text-destructive text-xs">{errorLabel}</p>
       )}
     </div>
   )

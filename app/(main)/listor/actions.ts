@@ -50,6 +50,20 @@ export async function deleteListItem(id: string): Promise<ActionResult> {
   return error ? { error: error.message } : {}
 }
 
+/** Tar bort ALLA objekt i en lista på en gång – används av "Rensa lista" och assistentens förslagskort. */
+export async function clearList(listId: string): Promise<ActionResult> {
+  const ctx = await requireFamily()
+  if ("error" in ctx) return ctx
+
+  const { error } = await ctx.supabase
+    .from("list_items")
+    .delete()
+    .eq("list_id", listId)
+    .eq("family_id", ctx.familyId)
+
+  return error ? { error: error.message } : {}
+}
+
 export async function createList(input: {
   type: ListType
   title: string

@@ -6,10 +6,19 @@ import { Trash2 } from "lucide-react"
 
 import {
   addListItem,
+  clearList,
   deleteListItem,
   toggleListItem,
 } from "@/app/(main)/listor/actions"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { PRIORITY_LABELS } from "@/lib/lists/types"
 import type { Tables } from "@/lib/supabase/types"
@@ -42,6 +51,7 @@ export function ListSection({
   const [label, setLabel] = useState("")
   const [assignedTo, setAssignedTo] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false)
 
   const sorted = [...items].sort((a, b) => {
     if (a.is_done !== b.is_done) return a.is_done ? 1 : -1
@@ -74,9 +84,49 @@ export function ListSection({
     return id ? members.find((member) => member.id === id)?.display_name : undefined
   }
 
+  function handleClearList() {
+    setConfirmClearOpen(false)
+    run(() => clearList(list.id))
+  }
+
   return (
     <div className="bg-card flex flex-col gap-3 rounded-[var(--radius-card)] p-4 shadow-sm">
-      <h3 className="text-foreground text-sm font-semibold">{list.title}</h3>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-foreground text-sm font-semibold">{list.title}</h3>
+        {items.length > 0 && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => setConfirmClearOpen(true)}
+            className="text-muted-foreground hover:text-destructive shrink-0 text-xs underline-offset-2 hover:underline"
+          >
+            Rensa lista
+          </button>
+        )}
+      </div>
+
+      <Dialog open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rensa &quot;{list.title}&quot;?</DialogTitle>
+            <DialogDescription>
+              Alla {items.length} objekt i listan tas bort. Det går inte att
+              ångra.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmClearOpen(false)}
+            >
+              Avbryt
+            </Button>
+            <Button variant="destructive" onClick={handleClearList}>
+              Rensa lista
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {sorted.length === 0 ? (
         <p className="text-muted-foreground text-sm">Tomt just nu.</p>

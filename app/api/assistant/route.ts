@@ -60,6 +60,21 @@ const TOOLS: Anthropic.Tool[] = [
       required: ["entries"],
     },
   },
+  {
+    name: "suggest_clear_list",
+    description:
+      "Föreslå att RENSA (ta bort ALLA objekt i) en av familjens listor. Använd bara om användaren uttryckligen ber om att tömma/rensa en hel lista – inte för att ta bort enstaka saker. Sparas inte automatiskt – visas som förslag som användaren godkänner.",
+    input_schema: {
+      type: "object",
+      properties: {
+        list_id: {
+          type: "string",
+          description: "id för listan som ska rensas, taget från 'Familjens listor' i kontexten.",
+        },
+      },
+      required: ["list_id"],
+    },
+  },
 ]
 
 export type PendingAction =
@@ -69,8 +84,12 @@ export type PendingAction =
       kind: "meal_plan"
       entries: { date: string; mealTitle: string }[]
     }
+  | { id: string; kind: "clear_list"; listId: string; listTitle: string }
 
-function toPendingAction(block: Anthropic.ToolUseBlock): PendingAction | null {
+function toPendingAction(
+  block: Anthropic.ToolUseBlock,
+  lists: { id: string; title: string }[]
+): PendingAction | null {
   const input = block.input as Record<string, unknown>
 
   if (block.name === "suggest_list_items") {
@@ -105,6 +124,14 @@ function toPendingAction(block: Anthropic.ToolUseBlock): PendingAction | null {
       .filter((entry) => entry.date !== "" && entry.mealTitle !== "")
     if (cleanEntries.length === 0) return null
     return { id: block.id, kind: "meal_plan", entries: cleanEntries }
+  }
+
+  if (block.name === "suggest_clear_list") {
+    const listId = input.list_id
+    if (typeof listId !== "string") return null
+    const list = lists.find((l) => l.id === listId)
+    if (!list) return null
+    return { id: block.id, kind: "clear_list", listId: list.id, listTitle: list.title }
   }
 
   return null
@@ -173,7 +200,7 @@ export async function POST(req: Request) {
       .eq("family_id", familyId)
       .eq("is_done", false)
       .limit(50),
-    supabase.from("lists").select("id, title").eq("family_id", familyId),
+    supabase.from("lists").select("id, title, type").eq("family_id", familyId),
     supabase
       .from("pets")
       .select("name, species, breed, current_medication")
@@ -224,6 +251,7 @@ Kommande händelser: ${JSON.stringify(events ?? [])}
 Öppna listor: ${JSON.stringify(openItems)}
 Planerad mat kommande dagar: ${JSON.stringify(meals ?? [])}
 Familjemedlemmars matpreferenser och hobbies: ${JSON.stringify(preferences)}
+Familjens listor (id, titel, typ): ${JSON.stringify(lists ?? [])}
 Husdjur: ${JSON.stringify(pets ?? [])}
 Använd matpreferenserna när du föreslår middagar, matsedel eller vad som ska
 handlas – undvik det någon ogillar och lyft gärna favoriter.
@@ -231,6 +259,8 @@ Om du föreslår en middag eller uppmanas lägga till något på en lista: skriv
 kort vad du föreslår i vanlig text, och använd DESSUTOM verktygen
 suggest_meal_plan/suggest_list_items för att lägga fram det som ett konkret
 förslag – du sparar inget själv, användaren godkänner förslaget i appen.
+Om användaren ber dig rensa/tömma en hel lista: använd suggest_clear_list med
+rätt list_id från "Familjens listor" ovan.
 Svara kort, varmt och konkret på svenska.`
 
   const conversationHistory: Anthropic.MessageParam[] = (history ?? [])
@@ -261,7 +291,7 @@ Svara kort, varmt och konkret på svenska.`
     )
 
     const pendingActions = toolUseBlocks
-      .map((block) => toPendingAction(block))
+      .map((block) => toPendingAction(block, lists ?? []))
       .filter((action): action is PendingAction => action !== null)
 
     const reply =
