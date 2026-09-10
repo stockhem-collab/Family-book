@@ -43,7 +43,7 @@ export default async function Home() {
     { data: family },
     { data: members },
     { data: events },
-    { data: items },
+    { data: items, count: openItemsTotal },
     { data: posts },
   ] = await Promise.all([
     supabase.from("families").select("name").eq("id", familyId).single(),
@@ -61,11 +61,11 @@ export default async function Home() {
       .order("starts_at"),
     supabase
       .from("list_items")
-      .select("id, label, assigned_to")
+      .select("id, label, assigned_to", { count: "exact" })
       .eq("family_id", familyId)
       .eq("is_done", false)
       .order("sort_order")
-      .limit(20),
+      .limit(5),
     supabase
       .from("feed_posts")
       .select("id, text_content, image_url, created_at, author_id")
@@ -77,7 +77,8 @@ export default async function Home() {
   const memberNames = Object.fromEntries(
     (members ?? []).map((member) => [member.id, member.display_name])
   )
-  const openItemsCount = items?.length ?? 0
+  const openItemsCount = openItemsTotal ?? items?.length ?? 0
+  const moreItemsCount = Math.max(0, openItemsCount - (items?.length ?? 0))
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 pb-8">
@@ -113,6 +114,7 @@ export default async function Home() {
           events={events ?? []}
           items={items ?? []}
           memberNames={memberNames}
+          moreItemsCount={moreItemsCount}
         />
       </section>
 
