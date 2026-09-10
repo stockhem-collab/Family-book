@@ -30,7 +30,7 @@ export async function createFamily(
   // om vi råkar krocka med en befintlig.
   for (let attempt = 0; attempt < 5; attempt++) {
     const inviteCode = generateInviteCode()
-    const { error } = await supabase.rpc("create_family", {
+    const { error } = await supabase.rpc("create_family" as any, {
       family_name: name,
       invite_code: inviteCode,
     })
