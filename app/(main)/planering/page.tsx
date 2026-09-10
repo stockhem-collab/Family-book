@@ -10,9 +10,9 @@ import { createClient } from "@/lib/supabase/server"
 export default async function PlaneringPage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string }>
+  searchParams: Promise<{ week?: string; day?: string }>
 }) {
-  const { week } = await searchParams
+  const { week, day } = await searchParams
   const supabase = await createClient()
   const {
     data: { user },
@@ -35,7 +35,13 @@ export default async function PlaneringPage({
 
   const now = new Date()
   const weekStart = (week && parseDateKey(week)) || getWeekStart(now)
-  const weekEnd = addDays(weekStart, 7)
+  const selectedDay = day ? parseDateKey(day) : null
+
+  // Om en dag är vald visar vi bara den + dagen efter (kan sträcka sig in i
+  // nästa vecka), annars hela veckan – hämta bara det datumintervall som
+  // faktiskt visas.
+  const rangeStart = selectedDay ?? weekStart
+  const rangeEnd = selectedDay ? addDays(selectedDay, 2) : addDays(weekStart, 7)
 
   const [{ data: events }, { data: members }] = await Promise.all([
     supabase
@@ -44,8 +50,8 @@ export default async function PlaneringPage({
         "id, title, category, location, starts_at, member_ids, bring_items"
       )
       .eq("family_id", familyId)
-      .gte("starts_at", weekStart.toISOString())
-      .lt("starts_at", weekEnd.toISOString())
+      .gte("starts_at", rangeStart.toISOString())
+      .lt("starts_at", rangeEnd.toISOString())
       .order("starts_at"),
     supabase
       .from("profiles")
@@ -69,11 +75,17 @@ export default async function PlaneringPage({
         <AddEventDialog members={members ?? []} />
       </div>
 
-      <WeekSelector weekStart={weekStart} today={now} basePath="/planering" />
+      <WeekSelector
+        weekStart={weekStart}
+        today={now}
+        basePath="/planering"
+        selectedDay={day}
+      />
       <DayAgenda
         weekStart={weekStart}
         events={events ?? []}
         members={members ?? []}
+        selectedDay={selectedDay}
       />
     </div>
   )

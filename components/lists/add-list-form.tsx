@@ -19,6 +19,7 @@ export function AddListForm({ type }: { type: ListType }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState("")
+  const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
   if (!open) {
@@ -34,32 +35,40 @@ export function AddListForm({ type }: { type: ListType }) {
     if (!title.trim()) return
     const value = title.trim()
     startTransition(async () => {
-      await createList({ type, title: value })
+      const result = await createList({ type, title: value })
+      if (result.error) {
+        setError(result.error)
+        return
+      }
       setTitle("")
+      setError(null)
       setOpen(false)
       router.refresh()
     })
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-2">
-      <Input
-        value={title}
-        onChange={(event) => setTitle(event.target.value)}
-        placeholder={PLACEHOLDER[type]}
-        autoFocus
-      />
-      <Button type="submit" size="sm" disabled={pending || !title.trim()}>
-        Skapa
-      </Button>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => setOpen(false)}
-      >
-        Avbryt
-      </Button>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <Input
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder={PLACEHOLDER[type]}
+          autoFocus
+        />
+        <Button type="submit" size="sm" disabled={pending || !title.trim()}>
+          Skapa
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setOpen(false)}
+        >
+          Avbryt
+        </Button>
+      </div>
+      {error && <p className="text-destructive text-sm">{error}</p>}
     </form>
   )
 }

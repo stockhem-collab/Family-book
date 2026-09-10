@@ -41,6 +41,7 @@ export function ListSection({
   const [pending, startTransition] = useTransition()
   const [label, setLabel] = useState("")
   const [assignedTo, setAssignedTo] = useState("")
+  const [error, setError] = useState<string | null>(null)
 
   const sorted = [...items].sort((a, b) => {
     if (a.is_done !== b.is_done) return a.is_done ? 1 : -1
@@ -49,7 +50,12 @@ export function ListSection({
 
   function run(action: () => Promise<{ error?: string }>) {
     startTransition(async () => {
-      await action()
+      const result = await action()
+      if (result.error) {
+        setError(result.error)
+        return
+      }
+      setError(null)
       router.refresh()
     })
   }
@@ -95,16 +101,20 @@ export function ListSection({
                       toggleListItem({ id: item.id, isDone: !item.is_done })
                     )
                   }
-                  className={cn(
-                    "flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-                    item.is_done
-                      ? "border-primary bg-primary"
-                      : "border-muted-foreground/40"
-                  )}
+                  className="-m-3 flex size-11 shrink-0 items-center justify-center"
                   aria-label={
                     item.is_done ? "Markera som ej klar" : "Markera som klar"
                   }
-                />
+                >
+                  <span
+                    className={cn(
+                      "flex size-5 items-center justify-center rounded-full border-2 transition-colors",
+                      item.is_done
+                        ? "border-primary bg-primary"
+                        : "border-muted-foreground/40"
+                    )}
+                  />
+                </button>
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span
                     className={cn(
@@ -136,6 +146,8 @@ export function ListSection({
           })}
         </ul>
       )}
+
+      {error && <p className="text-destructive text-sm">{error}</p>}
 
       <form onSubmit={handleAdd} className="flex items-center gap-2">
         <Input

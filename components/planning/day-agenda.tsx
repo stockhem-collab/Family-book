@@ -32,15 +32,23 @@ export function DayAgenda({
   weekStart,
   events,
   members,
+  selectedDay,
 }: {
   weekStart: Date
   events: EventRow[]
   members: Member[]
+  /** Vald dags nyckel (YYYY-MM-DD) – visar bara den dagen + dagen efter. */
+  selectedDay?: Date | null
 }) {
   const memberName = (id: string) =>
     members.find((member) => member.id === id)?.display_name
 
-  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  const days = selectedDay
+    ? [selectedDay, addDays(selectedDay, 1)]
+    : Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  // WEEKDAY_LONG är måndag-först (index 0); Date#getDay() är söndag-först
+  // (0 = söndag), så vi räknar om till måndag-först index här.
+  const weekdayIndexes = days.map((day) => (day.getDay() + 6) % 7)
   const eventsByDay = new Map<string, EventRow[]>()
   for (const event of events) {
     const key = toDateKey(new Date(event.starts_at))
@@ -58,7 +66,7 @@ export function DayAgenda({
         return (
           <div key={key} className="flex flex-col gap-2">
             <h3 className="text-foreground text-sm font-semibold">
-              {WEEKDAY_LONG[i]} {SHORT_DATE_FORMATTER.format(day)}
+              {WEEKDAY_LONG[weekdayIndexes[i]]} {SHORT_DATE_FORMATTER.format(day)}
             </h3>
             {dayEvents.length === 0 ? (
               <p className="text-muted-foreground text-xs">

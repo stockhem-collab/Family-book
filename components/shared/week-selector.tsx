@@ -9,12 +9,19 @@ export function WeekSelector({
   weekStart,
   today,
   basePath,
+  selectedDay,
+  interactive = true,
 }: {
   weekStart: Date
   today: Date
   basePath: string
+  /** Vald dags nyckel (YYYY-MM-DD), om agendan är filtrerad till en dag. */
+  selectedDay?: string | null
+  /** Sätt false för vyer som alltid visar hela veckan (t.ex. Mat). */
+  interactive?: boolean
 }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  const weekKey = toDateKey(weekStart)
   const todayKey = toDateKey(today)
   const prevWeek = toDateKey(addDays(weekStart, -7))
   const nextWeek = toDateKey(addDays(weekStart, 7))
@@ -45,22 +52,52 @@ export function WeekSelector({
         {days.map((day, i) => {
           const key = toDateKey(day)
           const isToday = key === todayKey
+          const isSelected = key === selectedDay
+          const dayCellClassName = cn(
+            "flex flex-col items-center rounded-lg py-2 text-xs transition-colors",
+            isSelected
+              ? "bg-accent text-accent-foreground ring-primary ring-2"
+              : isToday
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground"
+          )
+
+          if (!interactive) {
+            return (
+              <div key={key} className={dayCellClassName}>
+                <span>{WEEKDAY_SHORT[i]}</span>
+                <span className="text-sm font-semibold">{day.getDate()}</span>
+              </div>
+            )
+          }
+
+          const href = isSelected
+            ? `${basePath}?week=${weekKey}`
+            : `${basePath}?week=${weekKey}&day=${key}`
+
           return (
-            <div
+            <Link
               key={key}
-              className={cn(
-                "flex flex-col items-center rounded-lg py-2 text-xs",
-                isToday
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
-              )}
+              href={href}
+              className={cn(dayCellClassName, "hover:opacity-80")}
             >
               <span>{WEEKDAY_SHORT[i]}</span>
               <span className="text-sm font-semibold">{day.getDate()}</span>
-            </div>
+            </Link>
           )
         })}
       </div>
+      {interactive && selectedDay && (
+        <p className="text-muted-foreground text-xs">
+          Visar vald dag + dagen efter.{" "}
+          <Link
+            href={`${basePath}?week=${weekKey}`}
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            Visa hela veckan
+          </Link>
+        </p>
+      )}
     </div>
   )
 }

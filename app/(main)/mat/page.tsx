@@ -63,7 +63,12 @@ export default async function MatPage({
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-8">
       <h1 className="text-foreground text-xl font-semibold">Mat</h1>
-      <WeekSelector weekStart={weekStart} today={now} basePath="/mat" />
+      <WeekSelector
+        weekStart={weekStart}
+        today={now}
+        basePath="/mat"
+        interactive={false}
+      />
 
       <div className="flex flex-col gap-3">
         {days.map((day, i) => {

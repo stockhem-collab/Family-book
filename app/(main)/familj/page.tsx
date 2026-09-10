@@ -4,8 +4,10 @@ import { redirect } from "next/navigation"
 import { InviteCard } from "@/components/family/invite-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { calculateAge } from "@/lib/family/age"
+import { getAvatarColorClass } from "@/lib/family/avatar-color"
 import { getInitials } from "@/lib/family/initials"
 import { createClient } from "@/lib/supabase/server"
+import { cn } from "@/lib/utils"
 
 export default async function FamiljPage() {
   const supabase = await createClient()
@@ -54,7 +56,9 @@ export default async function FamiljPage() {
           >
             <Avatar className="size-16">
               <AvatarImage src={member.avatar_url ?? undefined} alt="" />
-              <AvatarFallback className="text-lg">
+              <AvatarFallback
+                className={cn("text-lg", getAvatarColorClass(member.id))}
+              >
                 {getInitials(member.display_name)}
               </AvatarFallback>
             </Avatar>

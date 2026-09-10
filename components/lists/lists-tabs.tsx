@@ -4,7 +4,11 @@ import { useMemo, useState } from "react"
 
 import { AddListForm } from "@/components/lists/add-list-form"
 import { ListSection } from "@/components/lists/list-section"
-import { LIST_TYPE_LABELS, type ListType } from "@/lib/lists/types"
+import {
+  LIST_TYPE_ACTIVE_CLASS,
+  LIST_TYPE_LABELS,
+  type ListType,
+} from "@/lib/lists/types"
 import type { Tables } from "@/lib/supabase/types"
 import { cn } from "@/lib/utils"
 
@@ -69,7 +73,7 @@ export function ListsTabs({
             className={cn(
               "shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
               activeType === value
-                ? "bg-primary text-primary-foreground"
+                ? LIST_TYPE_ACTIVE_CLASS[value]
                 : "bg-muted text-muted-foreground"
             )}
           >

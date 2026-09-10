@@ -3,9 +3,11 @@ import { notFound, redirect } from "next/navigation"
 import { ProfileTabs } from "@/components/family/profile-tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { calculateAge, daysUntilBirthday } from "@/lib/family/age"
+import { getAvatarColorClass } from "@/lib/family/avatar-color"
 import { getInitials } from "@/lib/family/initials"
 import { formatShortDateTime } from "@/lib/date/format"
 import { createClient } from "@/lib/supabase/server"
+import { cn } from "@/lib/utils"
 
 export default async function FamiljMemberPage({
   params,
@@ -92,7 +94,9 @@ export default async function FamiljMemberPage({
       <div className="flex items-center gap-4">
         <Avatar className="size-18">
           <AvatarImage src={member.avatar_url ?? undefined} alt="" />
-          <AvatarFallback className="text-xl">
+          <AvatarFallback
+            className={cn("text-xl", getAvatarColorClass(member.id))}
+          >
             {getInitials(member.display_name)}
           </AvatarFallback>
         </Avatar>
