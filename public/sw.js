@@ -48,17 +48,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request.url, { credentials: "include" }).catch(
-        () =>
-          new Response(OFFLINE_HTML, {
-            headers: { "Content-Type": "text/html; charset=utf-8" },
-          })
-      )
-    );
-    return;
-  }
+ if (request.mode === "navigate") {
+  return;
+}
 
   event.respondWith(
     caches.match(request).then(
