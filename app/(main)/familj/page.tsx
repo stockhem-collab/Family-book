@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 
 import { AddMemberDialog } from "@/components/family/add-member-dialog"
 import { InviteCard } from "@/components/family/invite-card"
+import { PetsSection } from "@/components/family/pets-section"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { calculateAge } from "@/lib/family/age"
 import { getAvatarColorClass } from "@/lib/family/avatar-color"
@@ -31,18 +32,20 @@ export default async function FamiljPage() {
     redirect("/onboarding")
   }
 
-  const [{ data: family }, { data: members }] = await Promise.all([
-    supabase
-      .from("families")
-      .select("name, invite_code")
-      .eq("id", familyId)
-      .single(),
-    supabase
-      .from("profiles")
-      .select("id, user_id, display_name, avatar_url, birth_date")
-      .eq("family_id", familyId)
-      .order("created_at"),
-  ])
+  const [{ data: family }, { data: members }, { data: pets }] =
+    await Promise.all([
+      supabase
+        .from("families")
+        .select("name, invite_code")
+        .eq("id", familyId)
+        .single(),
+      supabase
+        .from("profiles")
+        .select("id, user_id, display_name, avatar_url, birth_date")
+        .eq("family_id", familyId)
+        .order("created_at"),
+      supabase.from("pets").select("*").eq("family_id", familyId).order("created_at"),
+    ])
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-8">
@@ -85,6 +88,8 @@ export default async function FamiljPage() {
           </Link>
         ))}
       </div>
+
+      <PetsSection pets={pets ?? []} />
 
       {family && (
         <InviteCard familyName={family.name} inviteCode={family.invite_code} />
