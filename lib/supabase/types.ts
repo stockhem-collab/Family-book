@@ -604,6 +604,10 @@ export interface Database {
         Args: { code: string }
         Returns: { id: string; name: string }[]
       }
+      merge_profile_into: {
+        Args: { keep_profile_id: string; duplicate_profile_id: string }
+        Returns: undefined
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>

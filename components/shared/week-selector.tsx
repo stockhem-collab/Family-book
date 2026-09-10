@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { getStockholmDateParts } from "@/lib/date/timezone"
 import { addDays, toDateKey } from "@/lib/date/week"
 import { cn } from "@/lib/utils"
 
@@ -62,11 +63,13 @@ export function WeekSelector({
                 : "bg-muted text-muted-foreground"
           )
 
+          const dayOfMonth = getStockholmDateParts(day).day
+
           if (!interactive) {
             return (
               <div key={key} className={dayCellClassName}>
                 <span>{WEEKDAY_SHORT[i]}</span>
-                <span className="text-sm font-semibold">{day.getDate()}</span>
+                <span className="text-sm font-semibold">{dayOfMonth}</span>
               </div>
             )
           }
@@ -82,7 +85,7 @@ export function WeekSelector({
               className={cn(dayCellClassName, "hover:opacity-80")}
             >
               <span>{WEEKDAY_SHORT[i]}</span>
-              <span className="text-sm font-semibold">{day.getDate()}</span>
+              <span className="text-sm font-semibold">{dayOfMonth}</span>
             </Link>
           )
         })}

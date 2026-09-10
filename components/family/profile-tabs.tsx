@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 
+import { ClaimProfileForm } from "@/components/family/claim-profile-form"
 import { EditProfileForm } from "@/components/family/edit-profile-form"
 import { formatLongDate, formatTime } from "@/lib/date/format"
 import { PRIORITY_LABELS } from "@/lib/lists/types"
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils"
 type Member = Pick<
   Tables<"profiles">,
   | "id"
+  | "user_id"
   | "display_name"
   | "birth_date"
   | "clothing_size"
@@ -19,6 +21,7 @@ type Member = Pick<
   | "dislikes"
   | "hobbies"
 >
+type ClaimableAccount = Pick<Tables<"profiles">, "id" | "display_name">
 type EventRow = Pick<
   Tables<"calendar_events">,
   "id" | "title" | "starts_at" | "location"
@@ -43,11 +46,13 @@ export function ProfileTabs({
   activityEvents,
   wishlistItems,
   canEdit,
+  claimableAccounts,
 }: {
   member: Member
   activityEvents: EventRow[]
   wishlistItems: WishlistItem[]
   canEdit: boolean
+  claimableAccounts: ClaimableAccount[]
 }) {
   const [active, setActive] = useState<TabValue>("info")
 
@@ -171,6 +176,24 @@ export function ProfileTabs({
             <p className="text-muted-foreground text-sm">
               Bara personen själv eller en admin kan redigera profilen.
             </p>
+          )}
+
+          {canEdit && !member.user_id && (
+            <div className="bg-card flex flex-col gap-2 rounded-[var(--radius-card)] p-4 shadow-sm">
+              <h3 className="text-foreground text-sm font-semibold">
+                Har personen loggat in själv?
+              </h3>
+              <p className="text-muted-foreground text-sm">
+                Det här är en platshållarprofil utan eget konto. Om personen
+                nyligen skapat ett eget konto (t.ex. gått med via
+                inbjudningskoden), koppla ihop det kontot med den här
+                profilen så flyttas historiken över hit.
+              </p>
+              <ClaimProfileForm
+                placeholderId={member.id}
+                accounts={claimableAccounts}
+              />
+            </div>
           )}
         </div>
       )}

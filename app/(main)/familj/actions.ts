@@ -65,3 +65,30 @@ export async function createFamilyMember(input: {
 
   return error ? { error: error.message } : {}
 }
+
+/**
+ * Slår ihop en platshållarprofil (t.ex. ett barn utan konto) med en profil
+ * som redan har ett riktigt konto kopplat – när personen väl loggat in
+ * skapade signup-triggern nämligen en helt ny, tom profil istället för att
+ * återanvända platshållaren. Historik (händelser, listposter, inlägg …)
+ * flyttas över, och duplicate-profilen tas bort. Se migrationen
+ * merge_profile_into för säkerhetskontrollerna (admin, samma familj).
+ */
+export async function claimPlaceholderProfile(input: {
+  keepProfileId: string
+  duplicateProfileId: string
+}): Promise<ActionResult> {
+  const ctx = await requireFamily()
+  if ("error" in ctx) return ctx
+
+  if (ctx.role !== "admin") {
+    return { error: "Bara en admin kan koppla ihop profiler." }
+  }
+
+  const { error } = await ctx.supabase.rpc("merge_profile_into", {
+    keep_profile_id: input.keepProfileId,
+    duplicate_profile_id: input.duplicateProfileId,
+  })
+
+  return error ? { error: error.message } : {}
+}

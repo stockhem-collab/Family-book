@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 
 import { MealPlanRow } from "@/components/meals/meal-plan-row"
 import { WeekSelector } from "@/components/shared/week-selector"
+import { formatShortDate } from "@/lib/date/format"
 import { addDays, getWeekStart, parseDateKey, toDateKey } from "@/lib/date/week"
 import { createClient } from "@/lib/supabase/server"
 
@@ -14,10 +15,6 @@ const WEEKDAY_LONG = [
   "Lördag",
   "Söndag",
 ]
-const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
-  day: "numeric",
-  month: "short",
-})
 
 export default async function MatPage({
   searchParams,
@@ -81,7 +78,7 @@ export default async function MatPage({
               className="bg-card flex flex-col gap-2 rounded-[var(--radius-card)] p-3 shadow-sm"
             >
               <h3 className="text-foreground text-sm font-semibold">
-                {WEEKDAY_LONG[i]} {SHORT_DATE_FORMATTER.format(day)}
+                {WEEKDAY_LONG[i]} {formatShortDate(day)}
               </h3>
               <MealPlanRow date={key} meal={meal} />
             </div>

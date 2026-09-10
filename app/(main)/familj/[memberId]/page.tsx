@@ -38,7 +38,7 @@ export default async function FamiljMemberPage({
   const { data: member } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, avatar_url, birth_date, clothing_size, shoe_size, favorite_food, dislikes, hobbies"
+      "id, user_id, display_name, avatar_url, birth_date, clothing_size, shoe_size, favorite_food, dislikes, hobbies"
     )
     .eq("id", memberId)
     .eq("family_id", familyId)
@@ -47,6 +47,21 @@ export default async function FamiljMemberPage({
   if (!member) {
     notFound()
   }
+
+  const canEdit = viewer?.id === member.id || viewer?.role === "admin"
+
+  // Om det här är en platshållarprofil (inget eget konto) och man är admin:
+  // hämta familjens övriga profiler som HAR ett konto, så en av dem kan
+  // väljas att slås ihop hit (se claimPlaceholderProfile).
+  const { data: claimableAccounts } =
+    viewer?.role === "admin" && !member.user_id
+      ? await supabase
+          .from("profiles")
+          .select("id, display_name")
+          .eq("family_id", familyId)
+          .not("user_id", "is", null)
+          .neq("id", member.id)
+      : { data: null }
 
   const now = new Date()
   const birthDate = member.birth_date ? new Date(member.birth_date) : null
@@ -86,8 +101,6 @@ export default async function FamiljMemberPage({
         .in("list_id", wishlistListIds)
         .order("sort_order")
     : { data: [] }
-
-  const canEdit = viewer?.id === member.id || viewer?.role === "admin"
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-4 pb-8">
@@ -142,6 +155,7 @@ export default async function FamiljMemberPage({
         activityEvents={activityEvents ?? []}
         wishlistItems={wishlistItems ?? []}
         canEdit={canEdit}
+        claimableAccounts={claimableAccounts ?? []}
       />
     </div>
   )

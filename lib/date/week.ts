@@ -1,30 +1,37 @@
-// Måndag som veckostart (svensk konvention).
+import {
+  addStockholmDays,
+  getStockholmDateParts,
+  stockholmMidnightFromParts,
+  stockholmMidnightUTC,
+} from "@/lib/date/timezone"
+
+// Måndag som veckostart (svensk konvention), räknat i svensk tid.
 
 export function getWeekStart(date: Date): Date {
-  const start = new Date(date)
-  const day = start.getDay() // 0 = söndag, 1 = måndag, ...
-  const diff = (day === 0 ? -6 : 1) - day
-  start.setDate(start.getDate() + diff)
-  start.setHours(0, 0, 0, 0)
-  return start
+  const midnight = stockholmMidnightUTC(date)
+  const { year, month, day } = getStockholmDateParts(midnight)
+  // Bara kalenderdagens veckodag behövs (0=söndag..6=lördag) – en vanlig
+  // UTC-baserad Date duger fint till just det, oavsett klockslag.
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay()
+  const diff = weekday === 0 ? -6 : 1 - weekday
+  return addStockholmDays(midnight, diff)
 }
 
 export function addDays(date: Date, days: number): Date {
-  const result = new Date(date)
-  result.setDate(result.getDate() + days)
-  return result
+  return addStockholmDays(date, days)
 }
 
 export function toDateKey(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
-  return `${year}-${month}-${day}`
+  const { year, month, day } = getStockholmDateParts(date)
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
 }
 
 export function parseDateKey(key: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key)
   if (!match) return null
-  const [, year, month, day] = match
-  return new Date(Number(year), Number(month) - 1, Number(day))
+  return stockholmMidnightFromParts({
+    year: Number(match[1]),
+    month: Number(match[2]),
+    day: Number(match[3]),
+  })
 }

@@ -1,4 +1,5 @@
-import { formatTime } from "@/lib/date/format"
+import { formatShortDate, formatTime } from "@/lib/date/format"
+import { getStockholmDateParts } from "@/lib/date/timezone"
 import { addDays, toDateKey } from "@/lib/date/week"
 import type { Tables } from "@/lib/supabase/types"
 
@@ -11,10 +12,6 @@ const WEEKDAY_LONG = [
   "Lördag",
   "Söndag",
 ]
-const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("sv-SE", {
-  day: "numeric",
-  month: "short",
-})
 
 type EventRow = Pick<
   Tables<"calendar_events">,
@@ -46,9 +43,14 @@ export function DayAgenda({
   const days = selectedDay
     ? [selectedDay, addDays(selectedDay, 1)]
     : Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
-  // WEEKDAY_LONG är måndag-först (index 0); Date#getDay() är söndag-först
-  // (0 = söndag), så vi räknar om till måndag-först index här.
-  const weekdayIndexes = days.map((day) => (day.getDay() + 6) % 7)
+  // WEEKDAY_LONG är måndag-först (index 0). Date#getDay() är serverns egen
+  // tidszon (troligen UTC) – fel dag nära midnatt svensk tid – så vi läser
+  // veckodagen via de svenska kalenderdelarna istället.
+  const weekdayIndexes = days.map((day) => {
+    const { year, month, day: d } = getStockholmDateParts(day)
+    const weekday = new Date(Date.UTC(year, month - 1, d)).getUTCDay()
+    return (weekday + 6) % 7
+  })
   const eventsByDay = new Map<string, EventRow[]>()
   for (const event of events) {
     const key = toDateKey(new Date(event.starts_at))
@@ -66,7 +68,7 @@ export function DayAgenda({
         return (
           <div key={key} className="flex flex-col gap-2">
             <h3 className="text-foreground text-sm font-semibold">
-              {WEEKDAY_LONG[weekdayIndexes[i]]} {SHORT_DATE_FORMATTER.format(day)}
+              {WEEKDAY_LONG[weekdayIndexes[i]]} {formatShortDate(day)}
             </h3>
             {dayEvents.length === 0 ? (
               <p className="text-muted-foreground text-xs">

@@ -39,7 +39,7 @@ export default async function FamiljPage() {
       .single(),
     supabase
       .from("profiles")
-      .select("id, display_name, avatar_url, birth_date")
+      .select("id, user_id, display_name, avatar_url, birth_date")
       .eq("family_id", familyId)
       .order("created_at"),
   ])
@@ -66,8 +66,16 @@ export default async function FamiljPage() {
                 {getInitials(member.display_name)}
               </AvatarFallback>
             </Avatar>
-            <span className="text-foreground text-sm font-medium">
+            <span className="text-foreground flex items-center gap-1.5 text-sm font-medium">
               {member.display_name}
+              {!member.user_id && (
+                <span
+                  className="bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 text-[10px] font-normal"
+                  title="Har inget eget konto ännu"
+                >
+                  Platshållare
+                </span>
+              )}
             </span>
             {member.birth_date && (
               <span className="text-muted-foreground text-xs">

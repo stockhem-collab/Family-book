@@ -57,7 +57,7 @@ export default async function Home() {
       .select("id, title, starts_at, location")
       .eq("family_id", familyId)
       .gte("starts_at", todayStart)
-      .lte("starts_at", todayEnd)
+      .lt("starts_at", todayEnd)
       .order("starts_at"),
     supabase
       .from("list_items")
