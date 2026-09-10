@@ -12,6 +12,11 @@ import { createClient } from "@/lib/supabase/server"
  * (created_by, owner_id, author_id, assigned_to …) ska alltid använda
  * `profileId`, aldrig `userId`.
  */
+export type FamilyContext = Exclude<
+  Awaited<ReturnType<typeof requireFamily>>,
+  { error: string }
+>
+
 export async function requireFamily() {
   const supabase = await createClient()
   const {

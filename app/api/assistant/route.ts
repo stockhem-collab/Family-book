@@ -1,11 +1,114 @@
 import Anthropic from "@anthropic-ai/sdk"
 
+import { getStockholmDateParts } from "@/lib/date/timezone"
+import type { ListType } from "@/lib/lists/types"
 import { createClient } from "@/lib/supabase/server"
 
 // OBS: CLAUDE.md:s ursprungliga exempel angav modellen "claude-sonnet-4-6".
 // Den strängen är inaktuell – aktuell modellrekommendation är "claude-opus-5".
 const MODEL = "claude-opus-5"
 const HISTORY_LIMIT = 20
+const LIST_TYPES: ListType[] = ["shopping", "todo", "packing", "wishlist"]
+
+// Assistenten får INTE spara något själv – den föreslår, och klienten visar
+// ett bekräftelsekort som användaren måste godkänna innan något skrivs till
+// listor eller matplanering (se app/(main)/assistent/actions.ts).
+const TOOLS: Anthropic.Tool[] = [
+  {
+    name: "suggest_list_items",
+    description:
+      "Föreslå varor/uppgifter att lägga till på en av familjens listor (t.ex. ingredienser till en middag du föreslagit, eller sådant användaren bad dig lägga till). Sparas inte automatiskt – visas som förslag som användaren godkänner.",
+    input_schema: {
+      type: "object",
+      properties: {
+        list_type: {
+          type: "string",
+          enum: LIST_TYPES,
+          description: "Vilken lista förslaget gäller.",
+        },
+        items: {
+          type: "array",
+          items: { type: "string" },
+          description: "En kort textrad per vara/uppgift.",
+        },
+      },
+      required: ["list_type", "items"],
+    },
+  },
+  {
+    name: "suggest_meal_plan",
+    description:
+      "Föreslå middagar/måltider för specifika datum i matplaneringen. Sparas inte automatiskt – visas som förslag som användaren godkänner.",
+    input_schema: {
+      type: "object",
+      properties: {
+        entries: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              date: {
+                type: "string",
+                description: "Datum i formatet ÅÅÅÅ-MM-DD.",
+              },
+              meal_title: { type: "string" },
+            },
+            required: ["date", "meal_title"],
+          },
+        },
+      },
+      required: ["entries"],
+    },
+  },
+]
+
+export type PendingAction =
+  | { id: string; kind: "list_items"; listType: ListType; items: string[] }
+  | {
+      id: string
+      kind: "meal_plan"
+      entries: { date: string; mealTitle: string }[]
+    }
+
+function toPendingAction(block: Anthropic.ToolUseBlock): PendingAction | null {
+  const input = block.input as Record<string, unknown>
+
+  if (block.name === "suggest_list_items") {
+    const listType = input.list_type
+    const items = input.items
+    if (
+      typeof listType !== "string" ||
+      !LIST_TYPES.includes(listType as ListType) ||
+      !Array.isArray(items)
+    ) {
+      return null
+    }
+    const cleanItems = items.filter(
+      (item): item is string => typeof item === "string" && item.trim() !== ""
+    )
+    if (cleanItems.length === 0) return null
+    return { id: block.id, kind: "list_items", listType: listType as ListType, items: cleanItems }
+  }
+
+  if (block.name === "suggest_meal_plan") {
+    const entries = input.entries
+    if (!Array.isArray(entries)) return null
+    const cleanEntries = entries
+      .filter(
+        (entry): entry is { date: unknown; meal_title: unknown } =>
+          typeof entry === "object" && entry !== null
+      )
+      .map((entry) => ({
+        date: typeof entry.date === "string" ? entry.date : "",
+        mealTitle: typeof entry.meal_title === "string" ? entry.meal_title : "",
+      }))
+      .filter((entry) => entry.date !== "" && entry.mealTitle !== "")
+    if (cleanEntries.length === 0) return null
+    return { id: block.id, kind: "meal_plan", entries: cleanEntries }
+  }
+
+  return null
+}
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null)
@@ -110,18 +213,24 @@ export async function POST(req: Request) {
       hobbies: member.hobbies,
     }))
 
+  const { year, month, day } = getStockholmDateParts(new Date())
+  const todayStockholm = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+
   const systemContext = `Du är familjens assistent för "Familjen"-appen. Du pratar med ${
     profile?.display_name ?? "en familjemedlem"
   }.
+Dagens datum (svensk tid): ${todayStockholm}.
 Kommande händelser: ${JSON.stringify(events ?? [])}
 Öppna listor: ${JSON.stringify(openItems)}
 Planerad mat kommande dagar: ${JSON.stringify(meals ?? [])}
 Familjemedlemmars matpreferenser och hobbies: ${JSON.stringify(preferences)}
 Husdjur: ${JSON.stringify(pets ?? [])}
 Använd matpreferenserna när du föreslår middagar, matsedel eller vad som ska
-handlas – undvik det någon ogillar och lyft gärna favoriter. Du kan bara ge
-förslag i den här chatten; du sparar inget i listor eller matplanering åt
-${profile?.display_name ?? "användaren"} automatiskt.
+handlas – undvik det någon ogillar och lyft gärna favoriter.
+Om du föreslår en middag eller uppmanas lägga till något på en lista: skriv
+kort vad du föreslår i vanlig text, och använd DESSUTOM verktygen
+suggest_meal_plan/suggest_list_items för att lägga fram det som ett konkret
+förslag – du sparar inget själv, användaren godkänner förslaget i appen.
 Svara kort, varmt och konkret på svenska.`
 
   const conversationHistory: Anthropic.MessageParam[] = (history ?? [])
@@ -140,20 +249,33 @@ Svara kort, varmt och konkret på svenska.`
       max_tokens: 1024,
       output_config: { effort: "medium" },
       system: systemContext,
+      tools: TOOLS,
       messages: [...conversationHistory, { role: "user", content: message }],
     })
 
-    const textBlock = response.content.find(
+    const textBlocks = response.content.filter(
       (block): block is Anthropic.TextBlock => block.type === "text"
     )
-    const reply = textBlock?.text ?? "Jag kunde tyvärr inte svara just nu."
+    const toolUseBlocks = response.content.filter(
+      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
+    )
+
+    const pendingActions = toolUseBlocks
+      .map((block) => toPendingAction(block))
+      .filter((action): action is PendingAction => action !== null)
+
+    const reply =
+      textBlocks.map((block) => block.text).join("\n\n").trim() ||
+      (pendingActions.length > 0
+        ? "Här är ett förslag – godkänn det nedan om du vill lägga till det."
+        : "Jag kunde tyvärr inte svara just nu.")
 
     await supabase.from("assistant_messages").insert([
       { family_id: familyId, user_id: profileId, role: "user", content: message },
       { family_id: familyId, user_id: profileId, role: "assistant", content: reply },
     ])
 
-    return Response.json({ reply })
+    return Response.json({ reply, pendingActions })
   } catch (error) {
     if (error instanceof Anthropic.AuthenticationError) {
       return Response.json(
