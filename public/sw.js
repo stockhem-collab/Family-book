@@ -50,7 +50,7 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(
+      fetch(request.url, { credentials: "include" }).catch(
         () =>
           new Response(OFFLINE_HTML, {
             headers: { "Content-Type": "text/html; charset=utf-8" },
