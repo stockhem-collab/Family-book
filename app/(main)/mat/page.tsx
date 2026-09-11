@@ -80,7 +80,15 @@ export default async function MatPage({
               <h3 className="text-foreground text-sm font-semibold">
                 {WEEKDAY_LONG[i]} {formatShortDate(day)}
               </h3>
-              <MealPlanRow date={key} meal={meal} />
+              {/*
+                key på själva raden (inte bara den omgivande dagen) tvingar
+                React att montera om komponenten när måltiden för dagen
+                bytt identitet (skapad, borttagen eller ersatt) - annars
+                behåller de okontrollerade text-fälten sitt gamla innehåll
+                efter en spara/ta bort, eftersom defaultValue bara läses vid
+                första monteringen.
+              */}
+              <MealPlanRow key={meal?.id ?? `empty-${key}`} date={key} meal={meal} />
             </div>
           )
         })}
